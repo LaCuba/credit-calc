@@ -42,16 +42,18 @@
           </div>
         </div>
       </div>
+      <credit-form />
     </div>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from "vue"
+import CreditForm from "./CreditForm/CreditForm.vue"
 
 export default defineComponent({
   name: "CreditPage",
-  components: {},
+  components: { CreditForm },
 })
 </script>
 
