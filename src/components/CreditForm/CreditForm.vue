@@ -1,5 +1,5 @@
 <template>
-  <div class="credit-form">
+  <form class="credit-form" @submit.prevent="onSubmitCreditForm">
     <h1 class="credit-form__header">Заполните заявку онлайн</h1>
     <div class="credit-form__sliders">
       <div class="slider-sum-credit">
@@ -53,6 +53,7 @@
           autocomplete="off"
           placeholder=" "
           v-model="fullName"
+          required
         />
         <label for="fullName" class="credit-form__label">
           Фамилия Имя Отчество <i>*</i>
@@ -67,6 +68,7 @@
           placeholder=" "
           v-model="phone"
           @input="acceptNumber"
+          required
         />
         <label for="phone" class="credit-form__label"> Телефон <i>*</i> </label>
       </div>
@@ -84,7 +86,26 @@
         </label>
       </div>
     </div>
-  </div>
+    <div class="credit-form__submit__container">
+      <div class="credit-form__submit">
+        <div class="credit-form__submit__conditions">
+          <input
+            type="checkbox"
+            class="credit-form__submit__checkbox"
+            id="conditionsCheckbox"
+            v-model="conditions"
+            required
+          />
+          <label class="credit-form__submit__label" for="conditionsCheckbox">
+            Я принимаю условия передачи информации</label
+          >
+        </div>
+        <button @click="submit" class="credit-form__submit__btn">
+          ОТПРАВИТЬ
+        </button>
+      </div>
+    </div>
+  </form>
 </template>
 
 <script lang="ts">
@@ -99,6 +120,7 @@ export default defineComponent({
       fullName: "",
       phone: "",
       email: "",
+      conditions: false,
     }
   },
   computed: {
@@ -155,7 +177,24 @@ export default defineComponent({
           ? x[1]
           : "(" + x[1] + ") " + x[2] + (x[3] ? "-" + x[3] : "")
       }
-      console.log(this.fullName)
+    },
+    onSubmitCreditForm() {
+      const creditform = {
+        fullName: this.fullName,
+        phone: this.phone,
+        email: this.email,
+        conditions: this.conditions,
+        creditPeriod: this.creditPeriod,
+        creditSumm: this.creditSumm,
+        monthlyPayment: this.monthlyPayment.toString(),
+      }
+      console.log(creditform)
+      this.creditPeriod = "60"
+      this.creditSumm = "3000000"
+      this.fullName = ""
+      this.phone = ""
+      this.email = ""
+      this.conditions = false
     },
   },
 })
@@ -229,7 +268,6 @@ export default defineComponent({
   top: 15px;
   color: #999999;
   cursor: text;
-  // transition: top 200ms ease-in, left 200ms ease-in, font-size 200ms ease-in;
 
   font-family: Roboto;
   font-style: normal;
@@ -330,7 +368,6 @@ export default defineComponent({
   top: 15px;
   color: #999999;
   cursor: text;
-  // transition: top 200ms ease-in, left 200ms ease-in, font-size 200ms ease-in;
 
   font-family: Roboto;
   font-style: normal;
@@ -403,6 +440,7 @@ export default defineComponent({
 
 .credit-form__contacts {
   margin-top: 40px;
+  margin-bottom: 40px;
   display: grid;
   grid-template-columns: repeat(3, 333px);
   gap: 40.333px;
@@ -487,5 +525,97 @@ export default defineComponent({
   top: 10px;
   font-size: 12px;
   left: 15px;
+}
+
+.credit-form__submit__container {
+  &::before {
+    margin-bottom: 40px;
+    display: block;
+    width: 100%;
+    height: 1px;
+    background-color: #eeeeee;
+    content: "";
+  }
+}
+
+.credit-form__submit {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+
+  position: relative;
+}
+
+.credit-form__submit__conditions {
+  justify-self: start;
+}
+
+.credit-form__submit__checkbox {
+  position: absolute;
+  z-index: -1;
+  opacity: 0;
+}
+.credit-form__submit__label {
+  display: inline-flex;
+  align-items: center;
+  user-select: none;
+
+  font-family: Roboto;
+  font-style: normal;
+  font-weight: normal;
+  font-size: 16px;
+  line-height: 19px;
+  cursor: pointer;
+}
+.credit-form__submit__label::before {
+  content: "";
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  margin-right: 10px;
+  border: 2px solid #eeeeee;
+  background-color: #eeeeee;
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: 50% 50%;
+}
+
+.credit-form__submit__checkbox:not(:disabled):not(:checked)
+  + .credit-form__submit__label:hover::before {
+  background-color: #ffffff;
+  border-color: rgb(64, 82, 165);
+  border-radius: 10px;
+}
+.credit-form__submit__checkbox:checked + .credit-form__submit__label::before {
+  border-color: rgb(64, 82, 165);
+  // background-color: linear-gradient(91.4deg, #4052a5 0%, #242f62 100%);
+  background-color: rgb(64, 82, 165);
+  background-image: url("../../assets/vector.svg");
+}
+
+.credit-form__submit__btn {
+  justify-self: end;
+  width: 240px;
+  height: 50px;
+  border-radius: 5px;
+  background: linear-gradient(91.4deg, #4052a5 0%, #242f62 100%);
+
+  font-family: Roboto;
+  font-style: normal;
+  font-weight: bold;
+  font-size: 16px;
+  line-height: 19px;
+  color: #ffffff;
+  cursor: pointer;
+
+  &::hover {
+    background-blend-mode: overlay, normal;
+    background: linear-gradient(
+        0deg,
+        rgba(255, 255, 255, 0.75),
+        rgba(255, 255, 255, 0.75)
+      ),
+      linear-gradient(91.4deg, #4052a5 0%, #242f62 100%);
+  }
 }
 </style>

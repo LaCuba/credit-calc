@@ -43,6 +43,7 @@
         </div>
       </div>
       <credit-form />
+      <div class="footer__info">* При ставке 8,8% годовых</div>
     </div>
   </div>
 </template>
@@ -119,5 +120,16 @@ export default defineComponent({
   line-height: 24px;
 
   color: #000000;
+}
+
+.footer__info {
+  margin-top: 40px;
+
+  font-family: Roboto;
+  font-style: normal;
+  font-weight: normal;
+  font-size: 16px;
+  line-height: 19px;
+  color: #cccccc;
 }
 </style>
