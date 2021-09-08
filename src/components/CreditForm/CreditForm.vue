@@ -3,38 +3,30 @@
     <h1 class="credit-form__header">Заполните заявку онлайн</h1>
     <div class="credit-form__sliders">
       <div class="slider-sum-credit">
-        <div class="slider-sum-credit__container">
-          <div class="slider-sum-credit__value">
-            {{ creditSummRes }}
-          </div>
-          <div class="slider-sum-credit__label">Желаемая сумма кредита*</div>
-          <input
-            class="slider-sum-credit__range"
-            type="range"
-            :min="300000"
-            v-model="creditSumm"
-            :max="8000000"
-            :step="100000"
+        <div class="slider-sum-credit__slider-container">
+          <Slider
+            min="300000"
+            max="8000000"
+            beginValue="3000000"
+            step="100000"
+            @progress="updaterCreditSumm"
+            :displayRes="creditSummRes"
+            label="Желаемая сумма кредита*"
           />
         </div>
         <div class="slider-sum-credit__min-value">300 000 ₽</div>
         <div class="slider-sum-credit__max-value">8 000 000 ₽</div>
       </div>
       <div class="slider-period-credit">
-        <div class="slider-period-credit__container">
-          <div class="slider-period-credit__value">
-            {{ creditPeriodRes }}
-          </div>
-          <label for="inputId" class="slider-period-credit__label">
-            Срок кредита
-          </label>
-          <input
-            class="slider-period-credit__range"
-            type="range"
-            :min="1"
-            v-model="creditPeriod"
-            :max="240"
-            :step="1"
+        <div class="slider-period-credit__slider-container">
+          <Slider
+            min="1"
+            max="240"
+            beginValue="60"
+            step="1"
+            @progress="updaterCreditPeriod"
+            :displayRes="creditPeriodRes"
+            label="Срок кредита"
           />
         </div>
         <div class="slider-period-credit__min-value">1 месяц</div>
@@ -55,6 +47,7 @@
           v-model="fullName"
           required
         />
+        <span class="credit-form__input-border"> </span>
         <label for="fullName" class="credit-form__label">
           Фамилия Имя Отчество <i>*</i>
         </label>
@@ -68,8 +61,11 @@
           placeholder=" "
           v-model="phone"
           @input="acceptNumber"
+          @click="installMask"
+          @keydown="acceptNumber"
           required
         />
+        <span class="credit-form__input-border"> </span>
         <label for="phone" class="credit-form__label"> Телефон <i>*</i> </label>
       </div>
       <div class="credit-form__email">
@@ -81,6 +77,7 @@
           placeholder=" "
           v-model="email"
         />
+        <span class="credit-form__input-border"> </span>
         <label for="email" class="credit-form__label">
           Электронная почта
         </label>
@@ -89,13 +86,17 @@
     <div class="credit-form__submit__container">
       <div class="credit-form__submit">
         <div class="credit-form__submit__conditions">
-          <input
-            type="checkbox"
-            class="credit-form__submit__checkbox"
-            id="conditionsCheckbox"
-            v-model="conditions"
-            required
-          />
+          <div class="credit-form__submit__checkbox-container">
+            <input
+              type="checkbox"
+              class="credit-form__submit__checkbox"
+              id="conditionsCheckbox"
+              v-model="conditions"
+              required
+            />
+            <span class="credit-form__submit__border"></span>
+            <span class="credit-form__submit__vector"></span>
+          </div>
           <label class="credit-form__submit__label" for="conditionsCheckbox">
             Я принимаю условия передачи информации</label
           >
@@ -110,8 +111,10 @@
 
 <script lang="ts">
 import { defineComponent } from "vue"
+import Slider from "./Slider.vue"
 
 export default defineComponent({
+  components: { Slider },
   name: "CreditForm",
   data() {
     return {
@@ -124,6 +127,15 @@ export default defineComponent({
     }
   },
   computed: {
+    monthlyPayment(): number {
+      const percent = 8.8 / 12
+      const res =
+        Number(this.creditSumm) *
+        ((percent * Math.pow(1 + percent / 100, Number(this.creditPeriod))) /
+          100 /
+          (Math.pow(1 + percent / 100, Number(this.creditPeriod)) - 1))
+      return Math.floor(res)
+    },
     creditSummRes(): string {
       return this.creditSumm.replace(/(\d)(?=(\d{3})+([^\d]|$))/g, "$1 ") + " ₽"
     },
@@ -151,31 +163,116 @@ export default defineComponent({
         } ${month}`
       }
     },
-    monthlyPayment(): number {
-      const percent = 8.8 / 12
-      const res =
-        Number(this.creditSumm) *
-        ((percent * Math.pow(1 + percent / 100, Number(this.creditPeriod))) /
-          100 /
-          (Math.pow(1 + percent / 100, Number(this.creditPeriod)) - 1))
-      return Math.floor(res)
-    },
   },
   methods: {
+    updaterCreditSumm(value: number) {
+      this.creditSumm = value.toString()
+    },
+    updaterCreditPeriod(value: number) {
+      this.creditPeriod = value.toString()
+    },
     declOfNum(num: number, titles: string[]): string {
       const cases = [2, 0, 1, 1, 1, 2]
       return titles[
         num % 100 > 4 && num % 100 < 20 ? 2 : cases[num % 10 < 5 ? num % 10 : 5]
       ]
     },
-    acceptNumber() {
-      const x = this.phone
-        .replace(/\D/g, "")
-        .match(/(\d{0,3})(\d{0,3})(\d{0,4})/)
-      if (x !== null) {
-        this.phone = !x[2]
-          ? x[1]
-          : "(" + x[1] + ") " + x[2] + (x[3] ? "-" + x[3] : "")
+    installMask(event: Event) {
+      let element = event.target as HTMLInputElement
+      if (element.value === "") {
+        element.value = "+7 "
+      }
+    },
+    acceptNumber(event: KeyboardEvent) {
+      let element = event.target as HTMLInputElement
+      let oldValue = element.value
+      let caretPosition = element.selectionStart
+      let isCaretInEndPosition =
+        caretPosition && oldValue.substring(caretPosition).search(/\d/) === -1
+      let caretMinPosition = 4 // минимально допустимая позиция каретки (не заходить на '+7 (' )
+
+      if (caretPosition !== null) {
+        if (event.type === "keydown") {
+          let key = event.key
+          if (
+            key === "Backspace" &&
+            oldValue
+              .substring(caretPosition - 1, caretPosition)
+              .search(/[\s)-]/) !== -1
+          ) {
+            let shift = 1 // на сколько сдвинуть каретку
+            if (oldValue.substring(caretPosition - 2, caretPosition) === ") ")
+              shift = 2
+            element.setSelectionRange(
+              caretPosition - shift,
+              caretPosition - shift
+            )
+          }
+          if (
+            key === "Delete" &&
+            oldValue
+              .substring(caretPosition, caretPosition + 1)
+              .search(/[\s)-]/) !== -1
+          ) {
+            let shift = 1
+            if (oldValue.substring(caretPosition, caretPosition + 2) === ") ")
+              shift = 2
+            element.setSelectionRange(
+              caretPosition + shift,
+              caretPosition + shift
+            )
+          }
+
+          if (key === "ArrowLeft" && caretPosition === caretMinPosition)
+            event.preventDefault()
+          if (key === "ArrowRight" && isCaretInEndPosition)
+            event.preventDefault()
+
+          if (key === "ArrowUp") key = "Home"
+          if (key === "ArrowDown") key = "End"
+
+          if (key === "Home") {
+            element.setSelectionRange(caretMinPosition, caretMinPosition)
+            event.preventDefault()
+          }
+
+          if (key === "End") {
+            let caretMaxPosition = oldValue.indexOf("_")
+            if (caretMaxPosition !== -1) {
+              element.setSelectionRange(caretMaxPosition, caretMaxPosition)
+              event.preventDefault()
+            }
+          }
+
+          return
+        }
+
+        // вычисляем значение value элемента
+        let newValue = oldValue // при событии focus & click значение value не меняется
+        if (event.type === "input") {
+          let matrix = "+7 (___) ___-__-__",
+            i = 0,
+            def = matrix.replace(/\D/g, ""),
+            val = oldValue.replace(/\D/g, "")
+          newValue = matrix.replace(/[_\d]/g, function (match) {
+            return i < val.length ? val.charAt(i++) || def.charAt(i) : match
+          })
+          element.value = newValue
+        }
+
+        // определяем положение каретки
+        let caretMaxPosition = newValue.indexOf("_")
+        if (caretMaxPosition === -1) {
+          caretMaxPosition = newValue.length
+        }
+        if (isCaretInEndPosition) {
+          caretPosition = caretMaxPosition
+        } else if (caretPosition < caretMinPosition) {
+          caretPosition = caretMinPosition
+        } else if (caretPosition > caretMaxPosition) {
+          caretPosition = caretMaxPosition
+        }
+        element.setSelectionRange(caretPosition, caretPosition)
       }
     },
     onSubmitCreditForm() {
@@ -189,6 +286,7 @@ export default defineComponent({
         monthlyPayment: this.monthlyPayment.toString(),
       }
       console.log(creditform)
+      alert("Форма успешно отправлена!")
       this.creditPeriod = "60"
       this.creditSumm = "3000000"
       this.fullName = ""
@@ -236,79 +334,10 @@ export default defineComponent({
     "minValue maxValue";
   gap: 11px;
 }
-
-.slider-sum-credit__container {
+.slider-sum-credit__slider-container {
   grid-area: slider;
-  position: relative;
-  width: 520px;
-  height: 70px;
-  background-color: #eeeeee;
-  border-radius: 5px;
 }
 
-.slider-sum-credit__value {
-  position: absolute;
-  padding: 3px 0;
-  top: 30px;
-  left: 15px;
-  width: 490px;
-  height: 25px;
-
-  font-family: Roboto;
-  font-style: normal;
-  font-weight: normal;
-  font-size: 16px;
-  line-height: 19px;
-  color: #333333;
-}
-
-.slider-sum-credit__label {
-  position: absolute;
-  left: 15px;
-  top: 15px;
-  color: #999999;
-  cursor: text;
-
-  font-family: Roboto;
-  font-style: normal;
-  font-weight: normal;
-  font-size: 12px;
-  line-height: 14px;
-}
-
-.slider-sum-credit__range {
-  overflow: hidden;
-  position: absolute;
-  margin: 0;
-  left: 0;
-  top: 60px;
-  width: 520px;
-  height: 10px;
-  border-radius: 5px;
-  -webkit-appearance: none;
-  outline: none;
-  background-color: #dddddd;
-}
-
-.slider-sum-credit__range::-webkit-slider-thumb {
-  border: none;
-  width: 10px;
-  -webkit-appearance: none;
-  height: 10px;
-  cursor: ew-resize;
-  background: #4052a5;
-  box-shadow: -520px 0 0 515px #4052a5;
-}
-
-.slider-sum-credit__range::-moz-range-thumb {
-  border: none;
-  width: 10px;
-  -webkit-appearance: none;
-  height: 10px;
-  cursor: ew-resize;
-  background: #4052a5;
-  box-shadow: -520px 0 0 515px #4052a5;
-}
 .slider-sum-credit__min-value {
   grid-area: minValue;
 }
@@ -337,78 +366,10 @@ export default defineComponent({
   gap: 11px;
 }
 
-.slider-period-credit__container {
+.slider-period-credit__slider-container {
   grid-area: slider;
-  position: relative;
-  width: 520px;
-  height: 70px;
-  background-color: #eeeeee;
-  border-radius: 5px;
 }
 
-.slider-period-credit__value {
-  position: absolute;
-  padding: 3px 0;
-  top: 30px;
-  left: 15px;
-  width: 490px;
-  height: 25px;
-
-  font-family: Roboto;
-  font-style: normal;
-  font-weight: normal;
-  font-size: 16px;
-  line-height: 19px;
-  color: #333333;
-}
-
-.slider-period-credit__label {
-  position: absolute;
-  left: 15px;
-  top: 15px;
-  color: #999999;
-  cursor: text;
-
-  font-family: Roboto;
-  font-style: normal;
-  font-weight: normal;
-  font-size: 12px;
-  line-height: 14px;
-}
-
-.slider-period-credit__range {
-  overflow: hidden;
-  position: absolute;
-  margin: 0;
-  left: 0;
-  top: 60px;
-  width: 520px;
-  height: 10px;
-  border-radius: 5px;
-  -webkit-appearance: none;
-  outline: none;
-  background-color: #dddddd;
-}
-
-.slider-period-credit__range::-webkit-slider-thumb {
-  border: none;
-  width: 10px;
-  -webkit-appearance: none;
-  height: 10px;
-  cursor: ew-resize;
-  background: #4052a5;
-  box-shadow: -520px 0 0 515px #4052a5;
-}
-
-.slider-period-credit__range::-moz-range-thumb {
-  border: none;
-  width: 10px;
-  -webkit-appearance: none;
-  height: 10px;
-  cursor: ew-resize;
-  background: #4052a5;
-  box-shadow: -520px 0 0 515px #4052a5;
-}
 .slider-period-credit__min-value {
   grid-area: minValue;
 }
@@ -461,14 +422,28 @@ export default defineComponent({
   width: 333px;
   height: 60px;
 }
-.credit-form__input {
+
+.credit-form__input-border {
   position: absolute;
-  top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  border: 2px solid #e1e5ee;
+  top: 0;
+  width: 333px;
+  height: 60px;
+  padding: 15px;
+  background: #eeeeee;
   border-radius: 5px;
+  z-index: 1;
+}
+
+.credit-form__input {
+  z-index: 2;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 329px;
+  height: 56px;
+  border: none;
+  border-radius: 4px;
   color: #333333;
   outline: none;
   padding: 25px 15px 10px 15px;
@@ -482,12 +457,17 @@ export default defineComponent({
 
   &:hover {
     background: #ffffff;
-    border: 2px solid #3c4ea3;
+  }
+
+  &:hover ~ .credit-form__input-border {
+    background: linear-gradient(91.4deg, #4052a5 0%, #242f62 100%);
   }
 
   &:focus {
     background: #ffffff;
-    border: 2px solid #3c4ea3;
+  }
+  &:focus ~ .credit-form__input-border {
+    background: linear-gradient(91.4deg, #4052a5 0%, #242f62 100%);
   }
 }
 
@@ -504,6 +484,7 @@ export default defineComponent({
   cursor: text;
   transition: top 200ms ease-in, left 200ms ease-in, font-size 200ms ease-in;
   background-color: #eeeeee;
+  z-index: 2;
 
   i {
     color: red;
@@ -514,6 +495,7 @@ export default defineComponent({
   background: #ffffff;
   color: #5168d1;
 }
+
 .credit-form__input:focus ~ .credit-form__label {
   background: #ffffff;
   color: #5168d1;
@@ -547,50 +529,88 @@ export default defineComponent({
 
 .credit-form__submit__conditions {
   justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  user-select: none;
+  gap: 10px;
+}
+
+.credit-form__submit__checkbox-container {
+  position: relative;
+  width: 40px;
+  height: 40px;
 }
 
 .credit-form__submit__checkbox {
   position: absolute;
-  z-index: -1;
-  opacity: 0;
-}
-.credit-form__submit__label {
-  display: inline-flex;
-  align-items: center;
-  user-select: none;
+  position: relative;
+  top: 2px;
+  left: 2px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  position: relative;
+  width: 36px;
+  height: 36px;
+  background: #eeeeee;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  z-index: 2;
 
+  &:before {
+    content: "";
+    position: absolute;
+    display: none;
+    top: 8px;
+    left: 6px;
+    // transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    // background-size: contain;
+    background-image: url(./../../assets/vector.svg);
+    background-repeat: no-repeat;
+    z-index: 3;
+  }
+}
+
+.credit-form__submit__checkbox:checked {
+  background: linear-gradient(91.4deg, #4052a5 0%, #242f62 100%);
+}
+
+.credit-form__submit__checkbox:checked::before {
+  display: block;
+}
+
+.credit-form__submit__checkbox:checked ~ .credit-form__submit__border {
+  background: linear-gradient(91.4deg, #4052a5 0%, #242f62 100%);
+}
+
+.credit-form__submit__checkbox:hover ~ .credit-form__submit__border {
+  background: linear-gradient(91.4deg, #4052a5 0%, #242f62 100%);
+}
+
+.credit-form__submit__border {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40px;
+  height: 40px;
+  background: #eeeeee;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.credit-form__submit__label {
   font-family: Roboto;
   font-style: normal;
   font-weight: normal;
   font-size: 16px;
   line-height: 19px;
   cursor: pointer;
-}
-.credit-form__submit__label::before {
-  content: "";
-  display: inline-block;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  margin-right: 10px;
-  border: 2px solid #eeeeee;
-  background-color: #eeeeee;
-  background-repeat: no-repeat;
-  background-position: center center;
-  background-size: 50% 50%;
-}
-
-.credit-form__submit__checkbox:not(:disabled):not(:checked)
-  + .credit-form__submit__label:hover::before {
-  background-color: #ffffff;
-  border-color: rgb(64, 82, 165);
-  border-radius: 10px;
-}
-.credit-form__submit__checkbox:checked + .credit-form__submit__label::before {
-  border-color: rgb(64, 82, 165);
-  // background-color: linear-gradient(91.4deg, #4052a5 0%, #242f62 100%);
-  background-color: rgb(64, 82, 165);
-  background-image: url("../../assets/vector.svg");
 }
 
 .credit-form__submit__btn {
@@ -608,7 +628,7 @@ export default defineComponent({
   color: #ffffff;
   cursor: pointer;
 
-  &::hover {
+  &:hover {
     background-blend-mode: overlay, normal;
     background: linear-gradient(
         0deg,
